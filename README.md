@@ -2,6 +2,8 @@
 
 A computational aerospace engineering project exploring a hybrid propulsion architecture combining **ground-powered kinetic launch, atmospheric Magnetohydrodynamic (MHD) propulsion, and LH₂/LOX aerospike propulsion**.
 
+<img width="1600" height="915" alt="image" src="https://github.com/user-attachments/assets/2cf59399-fccc-4d1e-8360-5e29123ac7b3" />
+
 ## Overview
 
 The proposed architecture uses externally supplied kinetic energy to accelerate the vehicle before atmospheric flight. During high-speed atmospheric flight, incoming air is modeled as an electrically conductive medium and accelerated using electromagnetic forces. As atmospheric density decreases, the system transitions toward onboard LH₂/LOX chemical propulsion using an aerospike configuration.
@@ -13,6 +15,8 @@ $$
 $$
 
 where **J** is current density and **B** is magnetic flux density.
+
+<img width="1902" height="1012" alt="image" src="https://github.com/user-attachments/assets/af393303-c92d-4ad9-bc91-2dac0748dd92" />
 
 ## What I Built
 
