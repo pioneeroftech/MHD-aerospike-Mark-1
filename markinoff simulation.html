@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MARKINOFF — The Architect Engine · Project 001</title>
+<style>
+  :root{
+    --bg:#080b0f; --panel:#0f151c; --panel2:#141d26; --well:#0a0f15;
+    --border:#233240; --bsoft:#1a2530; --text:#c9d6e2; --dim:#6b7d8f; --faint:#43535f;
+    --amber:#f0a63a; --cyan:#3fd0d8; --red:#ff5a52; --green:#4fd67f; --violet:#9b8cff;
+    --mono:'SFMono-Regular',ui-monospace,'JetBrains Mono',Menlo,monospace;
+    --sans:'Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100%;
+    background-image:radial-gradient(circle at 18% 0%,rgba(63,208,216,.05),transparent 45%),radial-gradient(circle at 92% 100%,rgba(240,166,58,.04),transparent 42%);}
+  .wrap{padding:16px;max-width:1320px;margin:0 auto}
+  .mono{font-family:var(--mono)}
+  .hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-bottom:12px}
+  .title{font-family:var(--mono);font-size:19px;letter-spacing:3px;font-weight:700}
+  .sub{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:1.5px;margin-top:2px}
+  .nav{display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:14px}
+  .navb{font-family:var(--mono);font-size:12px;padding:9px 16px;cursor:pointer;background:transparent;color:var(--dim);border:none;border-bottom:2px solid transparent;letter-spacing:1px}
+  .navb.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+  .tog{font-family:var(--mono);font-size:11px;padding:5px 13px;border-radius:3px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--border)}
+  .tog.on{background:var(--panel2);color:var(--cyan);border-color:var(--cyan)}
+  .viewhidden{display:none}
+  .stages{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .stage{flex:1 1 190px;padding:9px 12px;border-radius:4px;background:var(--panel);border:1px solid var(--bsoft)}
+  .stage.active{background:var(--panel2);border-color:var(--cyan)} .stage.done{border-color:var(--green)} .stage.locked{opacity:.45}
+  .stage .st{font-family:var(--mono);font-size:10.5px;letter-spacing:.5px;margin-bottom:3px;color:var(--dim)}
+  .stage.active .st{color:var(--cyan)} .stage.done .st{color:var(--green)}
+  .stage .sg{font-size:11.5px;color:var(--dim);line-height:1.4}
+  .grid{display:grid;grid-template-columns:minmax(240px,1fr) minmax(310px,1.5fr) minmax(280px,1.15fr);gap:14px;align-items:start}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:14px}
+  .clabel{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:1px;margin-bottom:12px;display:flex;justify-content:space-between}
+  .ghead{font-family:var(--mono);font-size:9.5px;color:var(--cyan);letter-spacing:1px;margin:14px 0 8px}
+  .ghead:first-child{margin-top:0}
+  .sl{margin-bottom:14px} .sl.hidden{display:none}
+  .slrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+  .slname{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .slval{font-family:var(--mono);font-size:13px;font-weight:600} .slval .u{color:var(--faint);margin-left:3px;font-weight:400}
+  .slhint{font-family:var(--mono);font-size:9.5px;color:var(--faint);margin-top:2px}
+  input[type=range]{width:100%;height:20px;cursor:pointer;margin:0}
+  .col{display:flex;flex-direction:column;gap:12px}
+  .cellwrap{overflow:hidden;padding:0} .cellwrap .clabel{padding:10px 12px 0}
+  .cell{height:252px}
+  .predrow{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap} .predfld{flex:1 1 130px}
+  .plab{font-family:var(--mono);font-size:10px;color:var(--dim);margin-bottom:5px}
+  .pin{display:flex;align-items:center;gap:6px}
+  .pin input{width:100%;background:var(--well);border:1px solid var(--border);color:var(--amber);font-family:var(--mono);font-size:16px;padding:7px 9px;border-radius:3px;outline:none}
+  .runbtn{flex:1 1 130px;background:var(--cyan);color:#04252a;border:none;border-radius:3px;padding:11px 14px;font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:1px;cursor:pointer}
+  .runbtn:disabled{background:var(--panel2);color:var(--dim);cursor:default}
+  .ro{padding:8px 10px;background:var(--well);border:1px solid var(--bsoft);border-radius:3px} .ro.danger{border-color:#3a2226}
+  .ro .rl{font-family:var(--mono);font-size:9.5px;color:var(--faint);letter-spacing:.5px;margin-bottom:3px}
+  .ro .rv{font-family:var(--mono);font-size:16px;font-weight:600;line-height:1} .ro.big .rv{font-size:22px}
+  .ro .rv .u{font-size:10px;color:var(--faint);margin-left:3px;font-weight:400}
+  .telgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .predout{margin-top:12px;display:flex;gap:10px} .predout .ro{flex:1}
+  .mk{font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+  .dot{width:7px;height:7px;border-radius:8px;background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+  .msgs{display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto}
+  .msg{font-size:12.5px;line-height:1.5;border-left:2px solid var(--border);padding-left:10px;opacity:.55} .msg.top{opacity:1}
+  .logbox{max-height:210px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+  .logrow{font-family:var(--mono);font-size:10.5px;display:flex;justify-content:space-between;padding:3px 6px;background:var(--well);border-radius:2px;color:var(--dim)}
+  .lognote{font-size:12px;color:var(--violet);line-height:1.4;padding:5px 7px;background:var(--well);border-radius:3px;border-left:2px solid var(--violet)}
+  .whybox{margin-bottom:10px;padding:10px;background:var(--well);border:1px solid var(--amber);border-radius:3px}
+  .whybox .q{font-size:12px;color:var(--amber);margin-bottom:7px}
+  .whybox textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:12px;padding:8px;border-radius:3px;outline:none;resize:vertical}
+  .whybtn{margin-top:7px;background:transparent;color:var(--amber);border:1px solid var(--amber);border-radius:3px;padding:5px 12px;font-family:var(--mono);font-size:11px;cursor:pointer}
+  .foot{margin-top:14px;font-family:var(--mono);font-size:10px;color:var(--faint);text-align:center;border-top:1px solid var(--bsoft);padding-top:10px}
+  /* manual */
+  .man{max-width:840px;margin:0 auto}
+  .mannav{display:flex;gap:5px;overflow-x:auto;padding-bottom:12px;margin-bottom:16px;border-bottom:1px solid var(--border)}
+  .mannavb{flex:0 0 auto;font-family:var(--mono);font-size:10.5px;padding:6px 10px;border-radius:3px;cursor:pointer;background:var(--panel);color:var(--dim);border:1px solid var(--bsoft);white-space:nowrap}
+  .mannavb.on{background:var(--panel2);color:var(--cyan);border-color:var(--cyan)}
+  .mancard{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:24px 26px;margin-bottom:16px}
+  .mksig{font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:2px;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+  .mansec{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:2px;margin-bottom:6px}
+  .manh{font-size:22px;font-weight:700;margin:0 0 16px;letter-spacing:.2px;line-height:1.25}
+  .man p{font-size:14.5px;line-height:1.72;color:#bccad6;margin:0 0 14px}
+  .man p .k{color:var(--text);font-weight:600}
+  .man .lead{font-size:16px;color:var(--text);line-height:1.66}
+  .man .snark{color:var(--dim);font-style:italic}
+  .eq{background:var(--well);border:1px solid var(--border);border-left:3px solid var(--cyan);border-radius:4px;padding:14px 16px;margin:16px 0}
+  .eq .ef{font-family:var(--mono);font-size:18px;color:var(--cyan);margin-bottom:8px}
+  .eq .ed{font-size:13.5px;line-height:1.62;color:var(--dim);margin:0}
+  .eq .ed b{color:var(--amber);font-weight:600;font-family:var(--mono)}
+  .eq.warn{border-left-color:var(--amber)} .eq.warn .ef{color:var(--amber)}
+  .num{background:rgba(240,166,58,.06);border:1px solid rgba(240,166,58,.25);border-radius:4px;padding:12px 15px;margin:16px 0;font-size:13.5px;line-height:1.7;color:#d8c39a}
+  .num b{color:var(--amber)}
+  .try{background:rgba(63,208,216,.06);border:1px solid rgba(63,208,216,.28);border-radius:4px;padding:11px 14px;margin:16px 0;font-size:13px;line-height:1.6;color:#a7d6da}
+  .try b{color:var(--cyan)}
+  .steps{counter-reset:s;padding:0;margin:6px 0 0;list-style:none}
+  .steps li{position:relative;padding:9px 0 9px 42px;border-bottom:1px solid var(--bsoft);font-size:13.5px;line-height:1.55;color:#bccad6}
+  .steps li:before{counter-increment:s;content:counter(s);position:absolute;left:0;top:8px;width:26px;height:26px;border:1px solid var(--cyan);color:var(--cyan);border-radius:50%;font-family:var(--mono);font-size:12px;display:flex;align-items:center;justify-content:center}
+  .steps li b{color:var(--text)}
+  .src{font-size:12.5px;line-height:1.55;color:var(--dim);padding:9px 0;border-bottom:1px solid var(--bsoft)}
+  .src a{color:var(--cyan);text-decoration:none;word-break:break-all} .src .conf{color:var(--green)}
+  .partrow{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--bsoft);align-items:baseline}
+  .partrow .pn{font-family:var(--mono);font-size:13px;color:var(--amber);min-width:130px;font-weight:600}
+  .partrow .pd{font-size:13px;line-height:1.55;color:#bccad6}
+  .diag{background:var(--well);border:1px solid var(--border);border-radius:5px;padding:10px;margin:16px 0}
+  .anwrap{max-width:900px;margin:0 auto}
+  .swchart{height:340px;background:var(--well);border:1px solid var(--border);border-radius:5px;padding:10px}
+  ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#1e2a35;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">
+    <div><div class="title">MARKINOFF<span style="color:var(--cyan)">_</span></div>
+      <div class="sub">THE ARCHITECT ENGINE · PROJECT 001 · MHD AEROSPIKE PROPULSION</div></div>
+    <div style="display:flex;gap:6px">
+      <button class="tog" id="mConcept">CONCEPT</button>
+      <button class="tog on" id="mEng">ENGINEERING</button>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="navb on" id="navLab">▸ LAB</button>
+    <button class="navb" id="navManual">▸ FIELD MANUAL</button>
+    <button class="navb" id="navAnalysis">▸ ANALYSIS</button>
+  </div>
+
+  <!-- ============ LAB ============ -->
+  <div id="view-lab">
+    <div class="stages" id="stages"></div>
+    <div class="grid">
+      <div class="card">
+        <div class="clabel"><span>DESIGN CONSOLE</span><span class="mono" style="color:var(--faint)" id="modeTag">constrained</span></div>
+        <div id="console"></div>
+      </div>
+      <div class="col">
+        <div class="card cellwrap"><div class="clabel"><span>TEST CELL · SECTION VIEW</span></div><div class="cell" id="cell"></div></div>
+        <div class="card">
+          <div class="predrow">
+            <div class="predfld"><div class="plab">PREDICT THRUST BEFORE RUN</div>
+              <div class="pin"><input id="pred" inputmode="decimal" placeholder="?" /><span class="mono" style="color:var(--faint)">N</span></div></div>
+            <button class="runbtn" id="run">▶ RUN 15 s BURN</button>
+          </div>
+          <div id="predout"></div>
+        </div>
+        <div class="card">
+          <div class="clabel"><span id="telHead">TELEMETRY · live preview</span></div>
+          <div class="telgrid" id="tel"></div>
+          <div id="chart" style="height:132px;margin-top:12px"></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card" style="min-height:240px"><div class="mk"><span class="dot"></span>MARKINOFF</div><div class="msgs" id="msgs"></div></div>
+        <div class="card"><div class="clabel"><span>ENGINEERING LOG</span></div><div id="why"></div><div class="logbox" id="log"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MANUAL ============ -->
+  <div id="view-manual" class="viewhidden">
+    <div class="man">
+      <div class="mannav" id="mannav"></div>
+
+      <!-- 00 -->
+      <div class="manpage">
+        <div class="mancard">
+          <div class="mksig"><span class="dot"></span>MARKINOFF · ORIENTATION</div>
+          <div class="mansec">FIELD MANUAL · 00</div>
+          <h2 class="manh">So you want to build an MHD aerospike.</h2>
+          <p class="lead">Adorable. You've decided to skip "toy drone" and "electric skateboard" and go straight for a rocket engine that pushes itself by bullying superheated plasma with magnets, then squeezes the exhaust past a spike that somehow works at every altitude. Bold. Your current qualification for this, as far as I can tell, is that you know a magnet sticks to a fridge.</p>
+          <p>Fine. I've taught worse. Here's how this works: I am not going to dump a physics degree on you in alphabetical order. I'm going to feed you exactly the idea you need, right before your machine needs it, in the order reality demands — because that's the only order that sticks. You'll read a page, go to the <span class="k">Lab</span>, break something expensive, come back confused, and reread it. That confusion is the class. That's the whole method. If you wanted to be comfortable you'd be watching a lecture.</p>
+          <p>Twelve chapters. We start where every force problem starts — with the humiliating fact that direction matters — and we end at the spike. Skip around if you want; you'll just fail sooner, which is also educational.</p>
+          <p class="snark">Rule one: predict before you run. A guess you write down is a hypothesis. A guess you keep in your head is just an opinion, and opinions don't fly.</p>
+        </div>
+      </div>
+
+      <!-- 01 -->
+      <div class="manpage" style="display:none">
+        <div class="mancard">
+          <div class="mksig"><span class="dot"></span>MARKINOFF · CH.01</div>
+          <div class="mansec">FIELD MANUAL · 01 — THE MATH YOU CANNOT SKIP</div>
+          <h2 class="manh">Vectors, and the cross product that runs this whole engine</h2>
+          <p>A number like "50" is a <span class="k">scalar</span> — temperature, mass, your patience. A <span class="k">vector</span> is a number that also cares about direction: velocity, force, magnetic field. Fifty newtons pointing at the wall and fifty newtons pointing at the sky are the same size and completely different outcomes. Ignore direction and you will build a beautiful machine that shoves itself sideways into a bulkhead. People have.</p>
+          <p>Two vectors can be multiplied two ways. The <span class="k">dot product</span> asks "how much do these point the same way?" and hands you a scalar. Useful, not our problem today. The one that runs this engine is the <span class="k">cross product</span>, written <b style="color:var(--violet);font-family:var(--mono)">A × B</b>. It eats two vectors and produces a third one <span class="k">perpendicular to both</span> — sticking straight out of the plane they lie in.</p>
+          <div class="eq"><div class="ef">|A × B| = |A| · |B| · sin θ</div>
+            <p class="ed">The size of the result depends on <b>sinθ</b>, the angle between the two inputs. Line them up (θ = 0°) and the cross product is <b>zero</b> — nothing. Set them at a right angle (θ = 90°, sinθ = 1) and it's <b>maximum</b>. Everything in between is a fraction you're leaving on the table. Remember this number; it's about to decide whether your thruster makes 40 N or 28 N for the same power.</p></div>
+          <div class="diag">
+            <svg viewBox="0 0 460 190" style="width:100%;height:auto">
+              <line x1="90" y1="150" x2="90" y2="55" stroke="#f0a63a" stroke-width="3" marker-end="url(#a1)"/>
+              <line x1="90" y1="150" x2="200" y2="150" stroke="#3fd0d8" stroke-width="3" marker-end="url(#a2)"/>
+              <line x1="90" y1="150" x2="150" y2="105" stroke="#4fd67f" stroke-width="3" marker-end="url(#a3)" stroke-dasharray="1"/>
+              <defs>
+                <marker id="a1" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#f0a63a"/></marker>
+                <marker id="a2" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#3fd0d8"/></marker>
+                <marker id="a3" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#4fd67f"/></marker>
+              </defs>
+              <text x="70" y="50" fill="#f0a63a" font-family="monospace" font-size="14" font-weight="700">A</text>
+              <text x="205" y="155" fill="#3fd0d8" font-family="monospace" font-size="14" font-weight="700">B</text>
+              <text x="155" y="100" fill="#4fd67f" font-family="monospace" font-size="14" font-weight="700">A×B</text>
+              <text x="250" y="90" fill="#6b7d8f" font-family="var(--sans)" font-size="12">two vectors in, one perpendicular vector out.</text>
+              <text x="250" y="110" fill="#6b7d8f" font-family="var(--sans)" font-size="12">right angle between A and B = biggest result.</text>
+            </svg>
+          </div>
+          <p>Direction comes from the <span class="k">right-hand rule</span>: point your fingers along the first vector, curl them toward the second, and your thumb points where the result goes. Do it with your actual hand. I'll wait. This isn't optional trivia — the direction your plasma gets thrown is set by exactly this gesture.</p>
+          <div class="try"><b>In the Lab:</b> switch to Engineering mode and drag the <b>FIELD ANGLE θ</b> slider. Watch thrust die as you move away from 90°. That collapse <i>is</i> sinθ. You're feeling a cross product with a slider.</div>
+        </div>
+      </div>
+
+      <!-- 02 -->
+      <div class="manpage" style="display:none">
+        <div class="mancard">
+          <div class="mksig"><span class="dot"></span>MARKINOFF · CH.02</div>
+          <div class="mansec">FIELD MANUAL · 02 — WHERE THE PUSH COMES FROM</div>
+          <h2 class="manh">From a single charge to a river of plasma</h2>
+          <p>A stationary electric charge sitting in a magnetic field feels nothing. Boring. But a charge <span class="k">moving</span> through a magnetic field gets shoved sideways. That shove is the <span class="k">Lorentz force</span>, and it is the seed of everything here.</p>
+          <div class="eq"><div class="ef">F = q · (v × B)</div>
+            <p class="ed">Force on one charge <b>q</b> moving at velocity <b>v</b> through field <b>B</b>. There's your cross product again — the force is perpendicular to both the motion and the field. This is the entire reason chapter 01 wasn't a waste of your time.</p></div>
+          <p>Now stop thinking about one lonely charge. A <span class="k">current</span> is just a parade of charges marching down a conductor. Add them all up and the single-charge law becomes the law for a current-carrying conductor of length <b style="font-family:var(--mono);color:var(--amber)">L</b>:</p>
+          <div class="eq"><div class="ef">F = I · (L × B)  →  F = B · I · L · sinθ</div>
+            <p class="ed">A wire carrying current <b>I</b> across a field <b>B</b> gets pushed. This is the motor principle — every electric motor on Earth is this equation spinning in a circle. We are not going to spin it. We're going to point it out the back.</p></div>
+          <p>Here's the move that makes it a rocket instead of a motor: <span class="k">delete the wire.</span> Replace the solid conductor with a channel full of plasma — a gas so hot its electrons have torn free, making the gas itself conductive. Now the current flows <i>through the fluid</i>, the field cuts across it, and the Lorentz force pushes on the <span class="k">plasma</span> directly. The stuff that gets shoved is your propellant, and it flies out the exhaust. In three dimensions this is written with current density <b style="font-family:var(--mono);color:var(--amber)">J</b> (current spread over the fluid), and the force per unit volume is <b style="font-family:var(--mono);color:var(--violet)">J × B</b> — the "body force" that engineers use to describe MHD accelerators.</p>
+          <div class="diag">
+            <svg viewBox="0 0 460 170" style="width:100%;height:auto">
+              <rect x="70" y="60" width="230" height="60" rx="3" fill="#0d141c" stroke="#233240"/>
+              <line x1="185" y1="118" x2="185" y2="62" stroke="#f0a63a" stroke-width="2.5" marker-end="url(#b1)"/>
+              <text x="192" y="94" fill="#f0a63a" font-family="monospace" font-size="13" font-weight="700">I</text>
+              <text x="120" y="95" fill="#3fd0d8" font-family="monospace" font-size="13">×  ×  ×  (B into page)</text>
+              <line x1="300" y1="90" x2="390" y2="90" stroke="#4fd67f" stroke-width="3" marker-end="url(#b2)"/>
+              <text x="340" y="82" fill="#4fd67f" font-family="monospace" font-size="13" font-weight="700">F = J×B</text>
+              <text x="40" y="94" fill="#6b7d8f" font-family="monospace" font-size="11">in →</text>
+              <defs>
+                <marker id="b1" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#f0a63a"/></marker>
+                <marker id="b2" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#4fd67f"/></marker>
+              </defs>
+            </svg>
+          </div>
+          <p>In our channel the current crosses the electrode gap <b style="font-family:var(--mono);color:var(--amber)">h</b>, so L becomes h, and the whole thing collapses to the number the Lab computes:</p>
+          <div class="eq"><div class="ef">F = B · I · h · sinθ</div>
+            <p class="ed">That's it. That's the thrust. Everything else in this manual is either (a) how to feed this equation or (b) how to stop it from destroying your hardware.</p></div>
+          <p class="snark">This configuration has a name — the crossed-field accelerator — and it is not my invention. NASA was firing these in electromagnets decades ago. You're standing on a very tall pile of other people's genius. Try not to embarrass it.</p>
+        </div>
+      </div>
+
+      <!-- 03 -->
+      <div class="manpage" style="display:none">
+        <div class="mancard">
+          <div class="mksig"><span class="dot"></span>MARKINOFF · CH.03</div>
+          <div class="mansec">FIELD MANUAL · 03 — THE WORKING FLUID</div>
+          <h2 class="manh">Plasma: why it has to be gas, and why it has to be hot</h2>
+          <p>The Lorentz force needs current, and current needs something that conducts. Cold air does not conduct — try pushing amps through the room and you'll get nothing but disappointment. So we cheat physics into cooperating: we <span class="k">ionize</span> the gas. Heat it hard enough (thousands of degrees) and electrons rip loose from their atoms. Now the gas is a churning soup of free electrons and positive ions — <span class="k">plasma</span> — and plasma conducts electricity like a liquid metal.</p>
+          <p>How well it conducts is a single number: <span class="k">conductivity σ</span> (sigma), in siemens per meter. Hotter, more ionized plasma → higher σ → current flows easily. Let it cool → σ collapses → your "conductor" becomes an insulator and the whole engine chokes. This is why real machines run brutally hot and sometimes cheat by seeding the gas with easily-ionized metals like cesium or potassium to prop up conductivity at lower temperatures.</p>
+          <p>Why do you care? Because σ is quietly the most important knob you're not paying attention to. It sets your resistance, which sets your heat, which sets whether you melt. Hold that thought — chapter 04 is where it detonates.</p>
+          <div class="try"><b>In the Lab:</b> drop <b>PLASMA CONDUCTIVITY σ</b> from 300 to 100 and run. Same everything else, and suddenly the channel cooks itself. You just made your propellant a worse conductor and paid for it in heat. Now you understand why nobody runs a cold MHD thruster.</div>
+        </div>
+      </div>
+
+      <!-- 04 -->
+      <div class="manpage" style="display:none">
+        <div class="mancard">
+          <div class="mksig"><span class="dot"></span>MARKINOFF · CH.04</div>
+          <div class="mansec">FIELD MANUAL · 04 — THE ENEMY</div>
+          <h2 class="manh">Resistance, I²R, and the quadratic trap that will melt you</h2>
+          <p>Your plasma conducts, but not perfectly. It resists. And its resistance follows the same law as any conductor:</p>
+          <div class="eq"><div class="ef">R = h / (σ · w · L)</div>
+            <p class="ed">Resistance = (distance the current travels, <b>h</b>) ÷ (conductivity <b>σ</b> × the area it flows through, <b>w·L</b>). Skinny gap, high conductivity, big electrode face → low resistance. Simple.</p></div>
+          <p>Now the part that ends careers. Any current forced through any resistance dumps energy as heat. The power lost is:</p>
+          <div class="eq warn"><div class="ef">P_heat = I² · R</div>
+            <p class="ed">Read the exponent. Heat scales with current <b>squared</b>. Double the current and you get <b>four times</b> the heat. But look back at chapter 02 — thrust only scales with current to the <b>first power</b>. Double the current, double the thrust, quadruple the heat. That mismatch is not a bug you can engineer away. It is the fundamental tension of the entire project.</p></div>
+          <div class="num">Here's the trap, in numbers. You want 40 N. Lazy approach: leave the field weak (B = 0.3 T) and crank current until F hits 40. That takes <b>I ≈ 2667 A</b>, which dumps <b>74 kW</b> of heat and melts your electrodes in about eleven seconds. Smart approach: raise the field to B = 0.8 T instead, and 40 N now needs only <b>I = 1000 A</b> — a mere <b>10 kW</b> of heat. Same thrust. <b>Field is cheap. Current is a loan shark.</b></div>
+          <p>This is the lesson MARKINOFF refuses to hand you in the Lab — you have to melt something first. Consider yourself spoiled that I wrote it down here.</p>
+          <div class="try"><b>In the Lab / Analysis:</b> open the <b>Analysis</b> tab and watch the amber heat curve bend upward and leave the straight green thrust line in the dust. That curve is I². That's your enemy drawn to scale.</div>
+        </div>
+      </div>
+
+      <!-- 05 -->
+      <div class="manpage" style="display:none">
+        <div class="mancard">
+          <div class="mksig"><span class="dot"></span>MARKINOFF · CH.05</div>
+          <div class="mansec">FIELD MANUAL · 05 — THE BILL</div>
+          <h2 class="manh">Power, back-EMF, and the generator you accidentally built</h2>
+          <p>Somebody has to pay for all this. To push current <b style="font-family:var(--mono);color:var(--amber)">I</b> through the plasma's resistance you need a voltage of <b style="font-family:var(--mono)">I·R</b> — Ohm's law, the oldest tax in electronics. But there's a second, sneakier charge on the bill.</p>
+          <p>Remember chapter 02: a conductor moving through a magnetic field generates a voltage. Your plasma is a conductor, and it's screaming down the channel at speed <b style="font-family:var(--mono);color:var(--amber)">u</b> through the field <b style="font-family:var(--mono);color:var(--cyan)">B</b>. So it generates its own voltage — pointing <span class="k">against</span> you. This is <span class="k">back-EMF</span>, and it's the universe's way of reminding you that your accelerator, run backwards, is literally an electric generator.</p>
+          <div class="eq"><div class="ef">V_back = B · u · h &nbsp;&nbsp;→&nbsp;&nbsp; P_elec = I · (I·R + V_back)</div>
+            <p class="ed">Total voltage you must supply = resistive part (<b>I·R</b>) + the back-EMF you have to overcome. Multiply by current for power. Notice most designs spend far more power shoving current through resistance (which becomes heat) than they get back as motion. That ratio is your <b>efficiency</b>, and early on it will be embarrassing.</p></div>
+          <p>The takeaway: raising current doesn't just cost you heat, it costs you <span class="k">watts</span> — twice, because I·R climbs with current too. Every argument in this manual keeps pointing the same direction: buy thrust with field, not amps.</p>
+          <div class="try"><b>In the Lab:</b> get to Stage 001-C. The power budget will punish exactly the brute-force build the heat limit already punished. Physics is not subtle about its preferences.</div>
+        </div>
+      </div>
+
+      <!-- 06 -->
+      <div class="manpage" style="display:none">
+        <div class="mancard">
+          <div class="mksig"><span class="dot"></span>MARKINOFF · CH.06</div>
+          <div class="mansec">FIELD MANUAL · 06 — MAKING IT A ROCKET</div>
+          <h2 class="manh">Thrust, mass flow, and why specific impulse is the number that matters</h2>
+          <p>Force pushing on plasma is nice. Rockets care about a subtler thing: how much you speed up how much propellant. Thrust is the rate you throw mass times how fast you throw it:</p>
+          <div class="eq"><div class="ef">F = ṁ · Δu &nbsp;&nbsp;→&nbsp;&nbsp; u_exhaust = u_in + F/ṁ</div>
+            <p class="ed"><b>ṁ</b> is mass flow (kg/s). For a given force, less mass flow means each kilogram leaves <b>faster</b> — higher exhaust velocity. That sounds great until you remember you carry all that propellant with you.</p></div>
+          <div class="eq"><div class="ef">Isp = u_exhaust / g₀</div>
+            <p class="ed"><b>Specific impulse</b> — exhaust speed divided by 9.81 — is fuel economy for rockets. High Isp means you get more push per kilogram of propellant, which means you can go farther without hauling a tanker. This is the number that decides whether your engine reaches orbit or just makes an impressive noise. Electromagnetic thrusters chase high Isp precisely because they can fling mass faster than any chemical flame.</p></div>
+          <p>The tension: for a fixed force, dropping mass flow raises Isp (good) but demands you dump more energy per kilogram (harder). You don't get to maximize everything. Welcome to engineering, where every win is a trade.</p>
+        </div>
+      </div>
+
+      <!-- 07 -->
+      <div class="manpage" style="display:none">
+        <div class="mancard">
+          <div class="mksig"><span class="dot"></span>MARKINOFF · CH.07</div>
+          <div class="mansec">FIELD MANUAL · 07 — THE PART IN THE TITLE</div>
+          <h2 class="manh">The aerospike: a nozzle that refuses to pick an altitude</h2>
+          <p>Here's the problem every rocket nozzle has and nobody tells you about. A bell nozzle is tuned for <span class="k">one</span> outside pressure. At sea level the thick atmosphere squeezes the exhaust plume and you lose thrust; up high in near-vacuum the plume flares out uselessly. A conventional nozzle is optimal at exactly one altitude and mediocre everywhere else. Rockets fly through <i>every</i> altitude. See the issue.</p>
+          <p>The <span class="k">aerospike</span> solves it by turning the nozzle inside out. Instead of exhaust flowing inside a bell, it flows down the outside of a central <span class="k">spike</span>, and the atmosphere itself forms the outer boundary of the exhaust. When outside pressure changes, the plume boundary just adjusts on its own. The result: it stays near-optimal from the launchpad to space. Altitude compensation, for free, with no moving parts. That's why it's in the project title and not, say, "MHD bell nozzle."</p>
+          <div class="diag">
+            <svg viewBox="0 0 460 180" style="width:100%;height:auto">
+              <text x="20" y="25" fill="#6b7d8f" font-family="monospace" font-size="11">SEA LEVEL — plume hugs the spike</text>
+              <path d="M60 60 L150 60 L110 110 Z" fill="none" stroke="#3fd0d8" stroke-width="2"/>
+              <path d="M60 60 L110 110" stroke="#4fd67f" stroke-width="1.5"/>
+              <path d="M150 60 L110 110" stroke="#4fd67f" stroke-width="1.5"/>
+              <line x1="70" y1="60" x2="105" y2="105" stroke="#f0a63a" stroke-width="1" opacity="0.6"/>
+              <line x1="140" y1="60" x2="115" y2="105" stroke="#f0a63a" stroke-width="1" opacity="0.6"/>
+              <text x="250" y="25" fill="#6b7d8f" font-family="monospace" font-size="11">HIGH ALTITUDE — plume spreads wide</text>
+              <path d="M300 60 L390 60 L350 130 Z" fill="none" stroke="#3fd0d8" stroke-width="2"/>
+              <line x1="305" y1="60" x2="335" y2="150" stroke="#f0a63a" stroke-width="1" opacity="0.6"/>
+              <line x1="385" y1="60" x2="365" y2="150" stroke="#f0a63a" stroke-width="1" opacity="0.6"/>
+              <text x="150" y="150" fill="#4fd67f" font-family="monospace" font-size="11">the spike stays optimal at both — no bell required.</text>
+            </svg>
+          </div>
+          <p>Now the "MHD" part earns its place. The plasma accelerator from chapters 02–06 is the <span class="k">source</span> — it energizes and pre-accelerates the exhaust electromagnetically before it ever reaches the spike. You're stacking two ideas: electromagnetic acceleration (throw the mass fast) and altitude-compensating expansion (waste none of it). The Lab currently models the accelerator stage — the hard, unforgiving heart. The spike geometry is the next build layer, and now you actually know what it's for instead of nodding along to a buzzword.</p>
+          <p class="snark">Yes, real aerospikes have their own nightmares — base heating, spike cooling, manufacturing. We'll get there. One catastrophe at a time.</p>
+        </div>
+      </div>
+
+      <!-- 08 -->
+      <div class="manpage" style="display:none">
+        <div class="mancard">
+          <div class="mksig"><span class="dot"></span>MARKINOFF · CH.08</div>
+          <div class="mansec">FIELD MANUAL · 08 — PUTTING IT TOGETHER</div>
+          <h2 class="manh">The tradeoff web: there is no "best" setting</h2>
+          <p>You now know every lever. Here's the ugly truth: pull any one and three others move. This is why engineering isn't a puzzle with an answer — it's a negotiation.</p>
+          <div class="eq"><p class="ed" style="margin:0">
+            ↑ <b>current</b> → ↑ thrust, but ↑↑↑ heat (I²) and ↑↑ power. The expensive lever.<br>
+            ↑ <b>field</b> → ↑ thrust with <i>no</i> heat penalty — but ↑ magnet mass. The smart lever, until mass bites.<br>
+            ↑ <b>conductivity σ</b> → ↓ resistance → ↓ heat and ↓ power. Free, if you can keep the plasma hot.<br>
+            ↑ <b>channel area (w·L)</b> → ↓ resistance → ↓ heat. Geometry is a lever too.<br>
+            ↑ <b>cooling</b> → survives heat directly — but ↑ radiator mass, which hurts acceleration.<br>
+            ↓ <b>mass flow</b> → ↑ specific impulse — but demands more energy per kilogram.</p></div>
+          <p>The engineer's job is to find the corner of this web that satisfies <span class="k">all</span> your requirements at once — thrust AND thermal survival AND power budget AND mass — not to maximize any single one. Project 001 walks you into this deliberately: Stage A ignores heat, Stage B adds it, Stage C adds power. By the end you're juggling all of them, which is the actual skill.</p>
+        </div>
+      </div>
+
+      <!-- 09 -->
+      <div class="manpage" style="display:none">
+        <div class="mancard">
+          <div class="mksig"><span class="dot"></span>MARKINOFF · CH.09</div>
+          <div class="mansec">FIELD MANUAL · 09 — HOW REAL ENGINEERS WORK</div>
+          <h2 class="manh">The loop. Run it every single time.</h2>
+          <p>Random guess-and-check is how amateurs waste a week. Here's the loop that clears Project 001 in three deliberate moves:</p>
+          <ol class="steps">
+            <li><b>Define.</b> The job: accelerate plasma to make measurable thrust for an aerospike upper stage.</li>
+            <li><b>Requirements.</b> A: F ≥ 20 N. B: F ≥ 40 N, no melt. C: also ≤ 55 kW.</li>
+            <li><b>Model.</b> Use ch.02–06 to <b>predict the thrust before you build.</b> Non-negotiable.</li>
+            <li><b>Design.</b> Choose B, I, geometry. Start conservative.</li>
+            <li><b>Simulate.</b> Run the 15-second burn.</li>
+            <li><b>Analyze.</b> Prediction vs measurement. A big gap = a relationship you don't own yet.</li>
+            <li><b>Debug.</b> Find the <i>dominant</i> failure. Usually heat. Ask which lever caused it.</li>
+            <li><b>Modify.</b> Change one thing. Beat heat by trading current for field.</li>
+            <li><b>Test.</b> Rerun. Did the change do what you predicted? If not, your model is wrong — fix the model, not just the number.</li>
+            <li><b>Validate.</b> All requirements met at once? Cleared. Otherwise back to step 6.</li>
+          </ol>
+          <p class="snark">Notice step 3 and step 9. If you can't predict what your change will do, you're not engineering, you're gambling with extra steps.</p>
+        </div>
+      </div>
+
+      <!-- 10 -->
+      <div class="manpage" style="display:none">
+        <div class="mancard">
+          <div class="mksig"><span class="dot"></span>MARKINOFF · CH.10</div>
+          <div class="mansec">FIELD MANUAL · 10 — RECEIPTS</div>
+          <h2 class="manh">Proof I'm not making this up</h2>
+          <p>Healthy instinct, distrusting your instructor. Here are the published sources every equation rests on, and what each confirms.</p>
+          <div class="src"><span class="conf">✓ Geometry &amp; force law (F ∝ J×B):</span> the crossed-field accelerator — a rectangular duct where current passes between two sides across a perpendicular magnetic field, inducing Lorentz (J×B) forces on the plasma. — arXiv 2205.14117 <a href="https://arxiv.org/pdf/2205.14117" target="_blank">arxiv.org/pdf/2205.14117</a></div>
+          <div class="src"><span class="conf">✓ Real device, ~2 T field:</span> NASA's MHD Augmented Propulsion Experiment — a cross-field MHD accelerator in a 2-T electromagnet where the imposed Lorentz body force accelerates the flow. <a href="https://ntrs.nasa.gov/api/citations/20030025730/downloads/20030025730.pdf" target="_blank">NASA TP-2003-212285</a></div>
+          <div class="src"><span class="conf">✓ Back-EMF (V ∝ B·u):</span> induced emf in an MHD channel is proportional to fluid velocity and magnetic flux density (Faraday's law); the accelerator reversed is a generator. <a href="https://iopscience.iop.org/article/10.1088/1757-899X/955/1/012075/pdf" target="_blank">IOP Conf. Ser. 955 012075</a></div>
+          <div class="src"><span class="conf">✓ Ohmic heating &amp; σ:</span> the working fluid behaves as a conductor of conductivity σ; the gap between input and useful power is ohmic heating in the fluid. <a href="https://www.sciencedirect.com/topics/engineering/magnetohydrodynamic-generator" target="_blank">ScienceDirect — MHD generator</a></div>
+          <div class="src" style="border:none"><span class="conf">✓ Conductivity regime:</span> plasma conductivity is on the order of 10 S/m and up, depending on temperature and ionization — the Lab's σ range sits here. <a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/4047094" target="_blank">US Patent 4,047,094</a></div>
+        </div>
+      </div>
+
+      <!-- 11 -->
+      <div class="manpage" style="display:none">
+        <div class="mancard">
+          <div class="mksig"><span class="dot"></span>MARKINOFF · CH.11</div>
+          <div class="mansec">FIELD MANUAL · 11 — WHERE THE MODEL LIES</div>
+          <h2 class="manh">Honest limits (because a model you trust blindly will kill you)</h2>
+          <p>This Lab is a <span class="k">0-D lumped model</span>: it treats the whole channel as one averaged point. Perfect for building the instincts in your head. Useless for a flight design, because it deliberately ignores:</p>
+          <div class="eq warn"><p class="ed" style="margin:0">
+            • <b>Hall effect</b> — at strong fields current skews sideways instead of crossing cleanly; real rigs fight it with segmented electrodes.<br>
+            • <b>Spatial structure</b> — no boundary layers, no field non-uniformity, no inlet effects.<br>
+            • <b>Ionization cost</b> — σ is a free slider here; in reality keeping plasma conductive costs real energy you'd have to budget.<br>
+            • <b>Radiation &amp; real cooling</b> — the thermal model is one lump with linear cooling.<br>
+            • <b>Aerospike fluid dynamics</b> — not simulated yet; ch.07 is concept, the spike math is a future layer.</p></div>
+          <p>That's what the fidelity levels are for. <span class="k">Concept</span> and <span class="k">Engineering</span> modes are here now — for intuition and design. A future <span class="k">High-Fidelity</span> mode adds the terms above, and here's the important part: the lessons you learn now don't get thrown out, they get <i>sharper</i>. You're learning real physics at a resolution you can actually reason with. Anyone who hands you full Navier–Stokes on day one is showing off, not teaching.</p>
+          <p class="snark">Now stop reading about the machine and go break one. The Lab's that way.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ANALYSIS ============ -->
+  <div id="view-analysis" class="viewhidden">
+    <div class="anwrap">
+      <div class="card" style="margin-bottom:14px">
+        <div class="clabel"><span>ANALYSIS · THRUST vs HEAT ACROSS CURRENT</span><span class="mono" style="color:var(--faint)" id="anB"></span></div>
+        <p style="font-size:13.5px;line-height:1.6;color:#bccad6;margin:0 0 12px">Sweeps current from 0 to 9000 A at your current field and geometry. <span style="color:var(--green)">Thrust</span> rises in a straight line. <span style="color:var(--amber)">Heat</span> curves upward — because it grows with current <i>squared</i>. Watch the amber curve outrun the green one. That gap is why brute-forcing current melts hardware.</p>
+        <div class="swchart" id="sweep"></div>
+      </div>
+      <div class="card"><div class="clabel"><span>THE SAME 40 N, TWO WAYS</span></div><div id="anCompare"></div></div>
+    </div>
+  </div>
+
+  <div class="foot">every value computed from the model · F = B·I·h·sinθ · P_heat = I²R · verified against NASA &amp; MHD literature (Manual · 10)</div>
+</div>
+
+<script>
+const G0=9.80665;
+const CSS=getComputedStyle(document.documentElement);
+const col=n=>CSS.getPropertyValue('--'+n).trim();
+const P={B:0.3,I:1500,h:0.05,w:0.08,L:0.2,mdot:0.05,sigma:300,cooling:0,angle:90};
+let mode='engineering', prediction='', result=null, stageIdx=0, view='lab', manPage=0;
+let cleared=[false,false,false], hist={runs:0,overheat:0};
+let running=false, liveT=300, failedNow=false, askWhy=false, logDraft='';
+let msgs=[{text:"MARKINOFF online. You've got a plasma channel, a magnet, an electrode pair, and a gas you don't respect yet. Objective 001-A: measurable thrust. Lost? The Field Manual now runs from vectors to the aerospike — read it, then predict a number and run something. Guessing in your head doesn't count.",tone:"neutral"}];
+let log=[];
+
+function simulate(p){
+  const uIn=100,burn=15,tMax=1000,mWall=2.4,cWall=500,tAmb=300;
+  const align=Math.sin((p.angle*Math.PI)/180);
+  const force=p.B*p.I*p.h*align;
+  const R=p.h/(p.sigma*p.w*p.L);
+  const pHeat=p.I*p.I*R;
+  const backEmf=p.B*uIn*p.h*align;
+  const V=p.I*R+backEmf, pElec=p.I*V;
+  const dU=p.mdot>0?force/p.mdot:0, uExhaust=uIn+dU, isp=uExhaust/G0;
+  const kineticPwr=force*((uIn+uExhaust)/2);
+  const efficiency=pElec>0?Math.min(1,kineticPwr/pElec):0;
+  const dt=0.25; const series=[]; let T=tAmb, failT=null;
+  for(let t=0;t<=burn+1e-9;t+=dt){series.push({t:+t.toFixed(2),T:Math.round(T)});
+    T+=((pHeat-p.cooling)/(mWall*cWall))*dt; if(T<tAmb)T=tAmb; if(T>tMax&&failT===null)failT=+t.toFixed(2);}
+  const Tfinal=series[series.length-1].T;
+  const magnetMass=3+11*p.B*p.B, coolMass=p.cooling/8000, massTotal=magnetMass+coolMass+5;
+  return{force,R,pHeat,backEmf,V,pElec,dU,uExhaust,isp,efficiency,series,Tfinal,failT,align,massTotal,coolMass};
+}
+function curP(){return{...P,angle:mode==='concept'?90:P.angle};}
+
+const STAGES=[
+  {name:"001-A · First Thrust",goal:"Produce measurable thrust: F ≥ 20 N.",check:r=>({pass:r.force>=20})},
+  {name:"001-B · Survive the Burn",goal:"F ≥ 40 N and the channel survives 15 s (T < 1000 K).",check:r=>({pass:r.force>=40&&r.failT===null})},
+  {name:"001-C · Power Budget",goal:"Hold F ≥ 40 N, no overheat, and P ≤ 55 kW.",check:r=>({pass:r.force>=40&&r.failT===null&&r.pElec<=55000})},
+];
+
+function markinoff(r,p){
+  const out=[]; const say=(text,tone='neutral')=>out.push({text,tone});
+  const predNum=parseFloat(prediction); const hasPred=!isNaN(predNum);
+  if(p.B<=0.001){say("Zero thrust. Current through the plasma, magnet stone cold. A current with nothing to deflect it is an expensive heater, nothing more. Force needs two things crossing each other. You brought one. (Manual ch.02.)","warn");return out;}
+  if(p.I<=1){say("No current, no force. The field will wait all day. Send some charge across the gap.","warn");return out;}
+  if(r.align<0.72){say(`Full field, full current, and the force still sags to ${r.force.toFixed(1)} N. So it's not 'field times current' — it's the angle between them. Perpendicular is where a cross product peaks. Yours isn't. (Manual ch.01.)`,"warn");return out;}
+  const pass=STAGES[stageIdx].check(r).pass;
+  if(r.failT!==null){const n=hist.overheat;
+    if(n<=0)say(`${r.force.toFixed(1)} N, then you turned the electrodes to slag at t = ${r.failT}s. Thrust means nothing if the hardware doesn't finish the burn. Something you raised heats the channel far faster than the force grows. Find it.`,"bad");
+    else if(n===1)say("Melted again. You raised current, force went up, heat went up far more. They don't scale the same way. That asymmetry is the whole problem — and it points to a cheaper way to buy thrust. See the Analysis tab.","bad");
+    else say("Ohmic heating goes as current SQUARED — I²R. Thrust goes as current to the first power, and linearly with field. For a fixed thrust, a stronger magnet at lower current runs vastly cooler. Trade current for field. Manual ch.04, since subtlety isn't landing.","bad");
+    return out;}
+  if(stageIdx===2&&r.pElec>55000&&r.force>=40){say(`Thrust fine, thermals fine, but ${(r.pElec/1000).toFixed(1)} kW — over budget. Most becomes heat, not motion (efficiency ${(r.efficiency*100).toFixed(0)}%). Lower the resistance — raise σ or channel area — and you drop heat AND volts. (Manual ch.05.)`,"warn");return out;}
+  const need=stageIdx===0?20:40;
+  if(!pass&&r.force<need){say(`Only ${r.force.toFixed(1)} N. Under target. Three quantities set that force and you can trade between them. Which are you wasting?`,"warn");return out;}
+  if(hasPred&&Math.abs(predNum-r.force)>Math.max(8,0.25*r.force)&&hist.runs<4){say(`You predicted ${predNum.toFixed(1)} N. The channel gave ${r.force.toFixed(1)} N. That gap is a relationship you don't own yet. Change one input, run, watch the direction. F = B·I·h·sinθ — Manual ch.02.`,"neutral");return out;}
+  if(pass){
+    if(stageIdx===0)say("Measurable thrust, hardware intact. Adequate. Before you feel clever — log what sets that force, in your own words. New constraint: the channel now has to survive the whole burn.","good");
+    else if(stageIdx===1)say("Forty newtons, electrodes solid. Good. You worked out that field is cheap and current is expensive. Last constraint for 001: keep the power honest.","good");
+    else say("Thrust met. Thermal limit respected. Power in budget. You bought thrust with field, spent current carefully, kept σ high, cooled only what needed it. That's engineering. Project 001 stage complete.","good");
+    return out;}
+  say("No hard failure, no clean pass — the ambiguous middle where real engineering lives. Read the telemetry and decide which number is holding you back.","neutral");
+  return out;
+}
+
+const SLIDERS=[
+  {group:'FIELD & DRIVE'},
+  {k:'B',label:'MAGNETIC FIELD  B',unit:'T',min:0,max:1.2,step:0.02,accent:'cyan',hint:'cheap thrust — absent from the heat equation'},
+  {k:'I',label:'DISCHARGE CURRENT  I',unit:'A',min:0,max:9000,step:100,accent:'amber',hint:'expensive thrust — heat rises with I²'},
+  {k:'angle',label:'FIELD ANGLE  θ(I,B)',unit:'°',min:0,max:90,step:5,accent:'violet',hint:'90° = full force; less wastes it by sinθ',eng:true},
+  {group:'CHANNEL GEOMETRY'},
+  {k:'h',label:'ELECTRODE GAP  h',unit:'m',min:0.02,max:0.1,step:0.005,accent:'cyan'},
+  {k:'w',label:'WIDTH  w',unit:'m',min:0.04,max:0.15,step:0.005,accent:'cyan'},
+  {k:'L',label:'LENGTH  L',unit:'m',min:0.1,max:0.4,step:0.01,accent:'cyan'},
+  {group:'PROPELLANT & THERMAL'},
+  {k:'mdot',label:'MASS FLOW  ṁ',unit:'kg/s',min:0.01,max:0.2,step:0.005,accent:'cyan'},
+  {k:'sigma',label:'PLASMA CONDUCTIVITY  σ',unit:'S/m',min:50,max:1200,step:25,accent:'violet',hint:'higher σ → lower resistance → less heat'},
+  {k:'cooling',label:'ACTIVE COOLING',unit:'W',min:0,max:80000,step:1000,accent:'green',hintFn:()=>`+${(P.cooling/8000).toFixed(1)} kg radiator mass`},
+];
+function buildConsole(){const c=document.getElementById('console'); c.innerHTML='';
+  SLIDERS.forEach(s=>{
+    if(s.group){const g=document.createElement('div');g.className='ghead';g.textContent=s.group;c.appendChild(g);return;}
+    const wrap=document.createElement('div');wrap.className='sl'+(s.eng&&mode==='concept'?' hidden':'');wrap.id='sl_'+s.k;
+    wrap.innerHTML=`<div class="slrow"><span class="slname">${s.label}</span><span class="slval" style="color:var(--${s.accent})"><span id="v_${s.k}"></span><span class="u">${s.unit}</span></span></div>`;
+    const inp=document.createElement('input');inp.type='range';inp.min=s.min;inp.max=s.max;inp.step=s.step;inp.value=P[s.k];inp.style.accentColor=col(s.accent);
+    inp.addEventListener('input',()=>{P[s.k]=parseFloat(inp.value);updateAll();});
+    wrap.appendChild(inp);
+    const hint=document.createElement('div');hint.className='slhint';hint.id='h_'+s.k; if(s.hint||s.hintFn)wrap.appendChild(hint);
+    c.appendChild(wrap);
+  });
+  refreshSliderLabels();
+}
+function refreshSliderLabels(){SLIDERS.forEach(s=>{ if(s.group)return;
+  const v=document.getElementById('v_'+s.k); if(v)v.textContent=P[s.k].toLocaleString(undefined,{maximumFractionDigits:3});
+  const h=document.getElementById('h_'+s.k); if(h)h.textContent=s.hintFn?s.hintFn():(s.hint||'');
+  const w=document.getElementById('sl_'+s.k); if(w)w.className='sl'+(s.eng&&mode==='concept'?' hidden':'');});
+}
+
+function cellSVG(r,p){
+  const heat=Math.min(1,Math.max(0,(liveT-300)/800));
+  const glow=`rgba(240,${Math.round(166-heat*120)},${Math.round(58-heat*40)},${(0.25+heat*0.5).toFixed(2)})`;
+  const forceLen=Math.min(120,20+(r.force/60)*100), fs=Math.min(1,p.B/1.2);
+  const parts=[0,1,2,3,4].map(i=>`<circle cx="${90+((i*47+(running?liveT*0.4:0))%200)}" cy="${135+(i%3)*12}" r="1.6" fill="${col('cyan')}" opacity="0.5"/>`).join('');
+  const fieldX=[0,1,2,3].map(i=>[0,1].map(j=>`<text x="${105+i*55}" y="${130+j*30}" fill="${col('cyan')}" font-family="monospace" font-size="12" opacity="${(0.25+fs*0.6).toFixed(2)}" text-anchor="middle">×</text>`).join('')).join('');
+  const elecCol=heat>0.6?col('red'):'#2a3a48';
+  return `<svg viewBox="0 0 460 300" style="width:100%;height:100%;display:block">
+    <defs><radialGradient id="pl" cx="50%" cy="50%" r="60%"><stop offset="0%" stop-color="${glow}"/><stop offset="100%" stop-color="rgba(63,208,216,0.02)"/></radialGradient>
+      <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="${col('amber')}"/></marker>
+      <marker id="ac" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="${col('green')}"/></marker></defs>
+    <rect x="70" y="110" width="230" height="80" rx="3" fill="#0d141c" stroke="${col('border')}"/>
+    <ellipse cx="185" cy="150" rx="105" ry="30" fill="url(#pl)"/>${parts}
+    <rect x="150" y="98" width="70" height="12" rx="2" fill="${elecCol}" stroke="${col('border')}"/>
+    <rect x="150" y="190" width="70" height="12" rx="2" fill="${elecCol}" stroke="${col('border')}"/>
+    <line x1="185" y1="188" x2="185" y2="112" stroke="${col('amber')}" stroke-width="2.5" marker-end="url(#ah)" opacity="${p.I>1?1:0.2}"/>
+    <text x="193" y="152" fill="${col('amber')}" font-family="monospace" font-size="13" font-weight="700">I</text>${fieldX}
+    <text x="298" y="205" fill="${col('cyan')}" font-family="monospace" font-size="11">B ⊗ into cell</text>
+    <line x1="300" y1="150" x2="${300+forceLen}" y2="150" stroke="${r.force>1?col('green'):col('faint')}" stroke-width="3" marker-end="url(#ac)" opacity="${r.force>1?1:0.3}"/>
+    <text x="${305+forceLen}" y="146" fill="${col('green')}" font-family="monospace" font-size="12" font-weight="700">F</text>
+    <text x="${305+forceLen}" y="162" fill="${col('dim')}" font-family="monospace" font-size="10">${r.force.toFixed(0)} N</text>
+    <text x="40" y="153" fill="${col('faint')}" font-family="monospace" font-size="10">in →</text>
+    <g transform="translate(70,214)"><rect x="0" y="0" width="150" height="20" rx="3" fill="${col('well')}" stroke="${heat>0.6?'#3a2226':col('bsoft')}"/>
+      <text x="8" y="14" fill="${col('faint')}" font-family="monospace" font-size="10">WALL</text>
+      <text x="46" y="14" fill="${heat>0.75?col('red'):heat>0.5?col('amber'):col('text')}" font-family="monospace" font-size="12" font-weight="700">${Math.round(liveT)} K</text>
+      <rect x="90" y="6" width="52" height="8" rx="2" fill="#0d1218"/><rect x="90" y="6" width="${(52*heat).toFixed(1)}" height="8" rx="2" fill="${heat>0.75?col('red'):heat>0.5?col('amber'):col('cyan')}"/></g>
+    ${failedNow?`<rect x="70" y="110" width="230" height="80" rx="3" fill="rgba(255,90,82,0.12)" stroke="${col('red')}" stroke-width="1.5"/><text x="185" y="155" fill="${col('red')}" font-family="monospace" font-size="15" font-weight="700" text-anchor="middle">THERMAL FAILURE</text>`:''}
+  </svg>`;
+}
+function chartSVG(series){
+  const maxT=Math.max(1080,...series.map(s=>s.T));
+  const x=t=>6+(t/15)*90, y=T=>96-((T-300)/(maxT-300))*88;
+  const pts=series.map(s=>`${x(s.t).toFixed(1)},${y(s.T).toFixed(1)}`).join(' ');
+  const meltY=y(1000).toFixed(1);
+  const ty=[300,650,1000].map(v=>`<text x="0" y="${(y(v)+3).toFixed(1)}" fill="${col('faint')}" font-size="4" font-family="monospace">${v}</text>`).join('');
+  const tx=[0,5,10,15].map(v=>`<text x="${x(v).toFixed(1)}" y="99.5" fill="${col('faint')}" font-size="4" font-family="monospace" text-anchor="middle">${v}</text>`).join('');
+  return `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100%">
+    <line x1="6" y1="${meltY}" x2="96" y2="${meltY}" stroke="${col('red')}" stroke-width="0.4" stroke-dasharray="1.5 1.2"/>
+    <text x="96" y="${(parseFloat(meltY)-1.5).toFixed(1)}" fill="${col('red')}" font-size="4" font-family="monospace" text-anchor="end">melt</text>
+    <polyline points="${pts}" fill="none" stroke="${col('amber')}" stroke-width="0.9"/>${ty}${tx}</svg>`;
+}
+function renderAnalysis(){
+  document.getElementById('anB').textContent=`B = ${P.B.toFixed(2)} T · h = ${P.h} m · σ = ${P.sigma}`;
+  const p=curP(); const Imax=9000, N=60; let maxF=0,maxH=0; const rows=[];
+  for(let i=0;i<=N;i++){const I=Imax*i/N; const s=simulate({...p,I}); rows.push({I,F:s.force,H:s.pHeat}); if(s.force>maxF)maxF=s.force; if(s.pHeat>maxH)maxH=s.pHeat;}
+  const x=I=>7+(I/Imax)*88, yF=F=>94-(F/(maxF||1))*84, yH=H=>94-(H/(maxH||1))*84;
+  const fp=rows.map(r=>`${x(r.I).toFixed(1)},${yF(r.F).toFixed(1)}`).join(' ');
+  const hp=rows.map(r=>`${x(r.I).toFixed(1)},${yH(r.H).toFixed(1)}`).join(' ');
+  const now=simulate(p);
+  const tx=[0,3000,6000,9000].map(v=>`<text x="${x(v).toFixed(1)}" y="99" fill="${col('faint')}" font-size="2.6" font-family="monospace" text-anchor="middle">${v}A</text>`).join('');
+  document.getElementById('sweep').innerHTML=`<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100%">
+    <polyline points="${hp}" fill="none" stroke="${col('amber')}" stroke-width="0.9"/>
+    <polyline points="${fp}" fill="none" stroke="${col('green')}" stroke-width="0.9"/>
+    <line x1="${x(p.I).toFixed(1)}" y1="6" x2="${x(p.I).toFixed(1)}" y2="94" stroke="${col('dim')}" stroke-width="0.3" stroke-dasharray="1 1"/>
+    <circle cx="${x(p.I).toFixed(1)}" cy="${yF(now.force).toFixed(1)}" r="1" fill="${col('green')}"/>
+    <circle cx="${x(p.I).toFixed(1)}" cy="${yH(now.pHeat).toFixed(1)}" r="1" fill="${col('amber')}"/>
+    <text x="8" y="5" fill="${col('green')}" font-size="3" font-family="monospace">thrust F (linear)</text>
+    <text x="52" y="5" fill="${col('amber')}" font-size="3" font-family="monospace">heat P (∝ I², curves up)</text>
+    <text x="${x(p.I).toFixed(1)}" y="93" fill="${col('dim')}" font-size="2.6" font-family="monospace" text-anchor="middle">you</text>${tx}</svg>`;
+  const build=(B)=>{const I=40/(B*p.h*Math.sin(p.angle*Math.PI/180)); return {B,I,s:simulate({...p,B,I})};};
+  const lowB=build(0.3), hiB=build(0.8);
+  const card=(t,b,c)=>`<div class="ro" style="flex:1"><div class="rl">${t}</div><div style="font-family:var(--mono);font-size:13px;color:${c};line-height:1.7;margin-top:4px">B = ${b.B.toFixed(2)} T<br>I = ${Math.round(b.I)} A<br>heat = ${(b.s.pHeat/1000).toFixed(1)} kW<br>peak T = ${b.s.Tfinal} K ${b.s.failT!==null?'<span style="color:'+col('red')+'">✗ MELTS</span>':'<span style="color:'+col('green')+'">✓ survives</span>'}</div></div>`;
+  document.getElementById('anCompare').innerHTML=`<div style="display:flex;gap:10px">${card('WEAK FIELD, BRUTE CURRENT',lowB,col('red'))}${card('STRONG FIELD, LOW CURRENT',hiB,col('green'))}</div><p style="font-size:13px;color:var(--dim);line-height:1.6;margin:12px 0 0">Both make exactly 40 N. The right build uses ${(lowB.I/hiB.I).toFixed(1)}× less current and ${(lowB.s.pHeat/hiB.s.pHeat).toFixed(0)}× less heat. The whole lesson of Project 001, in two columns.</p>`;
+}
+
+function roHTML(rl,rv,unit,color,cls){return `<div class="ro ${cls||''}"><div class="rl">${rl}</div><div class="rv" style="color:${color}">${rv}<span class="u">${unit}</span></div></div>`;}
+function renderStages(){document.getElementById('stages').innerHTML=STAGES.map((s,i)=>{
+  const cls=cleared[i]?'done':i===stageIdx?'active':(i>stageIdx?'locked':'');
+  return `<div class="stage ${cls}"><div class="st">${cleared[i]?'✓ ':''}${s.name}</div><div class="sg">${s.goal}</div></div>`;}).join('');}
+function renderTel(){const r=result||simulate(curP());
+  document.getElementById('telHead').textContent='TELEMETRY'+(result?'':' · live preview');
+  const dz=r.failT!==null;
+  document.getElementById('tel').innerHTML=
+    roHTML('THRUST',r.force.toFixed(1),'N',col('green'),'big')+roHTML('PEAK WALL T',r.Tfinal,'K',dz?col('red'):col('text'),'big'+(dz?' danger':''))+roHTML('POWER',(r.pElec/1000).toFixed(1),'kW',col('amber'),'big')+
+    roHTML('OHMIC HEAT',(r.pHeat/1000).toFixed(1),'kW',col('amber'))+roHTML('RESISTANCE',(r.R*1000).toFixed(1),'mΩ',col('text'))+roHTML('EFFICIENCY',(r.efficiency*100).toFixed(0),'%',col('violet'))+
+    roHTML('EXHAUST V',r.uExhaust.toFixed(0),'m/s',col('cyan'))+roHTML('SPEC IMPULSE',r.isp.toFixed(0),'s',col('cyan'))+roHTML('SYSTEM MASS',r.massTotal.toFixed(1),'kg',col('text'));
+  document.getElementById('chart').innerHTML=result?chartSVG(result.series):'<div class="mono" style="font-size:10px;color:var(--faint);display:flex;align-items:center;justify-content:center;height:100%">run a burn to plot wall temperature vs time</div>';
+}
+function renderCell(){const r=(running||result)?(result||simulate(curP())):simulate(curP());document.getElementById('cell').innerHTML=cellSVG(r,curP());}
+function renderPredout(){const el=document.getElementById('predout'); const pn=parseFloat(prediction);
+  if(result&&!running&&prediction!==''&&!isNaN(pn)){const err=(((result.force-pn)/(result.force||1))*100).toFixed(0); const good=Math.abs(result.force-pn)<5;
+    el.className='predout';el.style.display='flex';
+    el.innerHTML=roHTML('PREDICTED',pn.toFixed(1),'N',col('amber'))+roHTML('MEASURED',result.force.toFixed(1),'N',col('green'))+roHTML('ERROR',err,'%',good?col('green'):col('red'));
+  }else el.innerHTML='';}
+function renderMsgs(){document.getElementById('msgs').innerHTML=msgs.slice(0,12).map((m,i)=>{
+  const c=m.tone==='bad'?col('red'):m.tone==='warn'?col('amber'):m.tone==='good'?col('green'):col('text');
+  const b=m.tone==='bad'?col('red'):m.tone==='warn'?col('amber'):m.tone==='good'?col('green'):col('border');
+  return `<div class="msg ${i===0?'top':''}" style="color:${c};border-left-color:${b}">${m.text}</div>`;}).join('');}
+function renderLog(){const wy=document.getElementById('why');
+  wy.innerHTML=askWhy?`<div class="whybox"><div class="q">MARKINOFF: In your own words — why did your last design melt?</div><textarea id="wyta" rows="3" placeholder="Because I raised the current, and heat scales with…">${logDraft}</textarea><button class="whybtn" id="wybtn">SAVE CONCLUSION</button></div>`:'';
+  if(askWhy){const ta=document.getElementById('wyta');ta.addEventListener('input',()=>logDraft=ta.value);
+    document.getElementById('wybtn').addEventListener('click',()=>{if(logDraft.trim()){log.unshift({note:logDraft.trim()});logDraft='';askWhy=false;
+      msgs.unshift({text:"Logged. Right or wrong, writing it down is how a guess becomes a model. Now go prove it.",tone:"neutral"});renderMsgs();renderLog();}});}
+  const lb=document.getElementById('log');
+  if(log.length===0){lb.innerHTML='<div class="mono" style="font-size:11px;color:var(--faint)">no runs yet · every burn is recorded here</div>';return;}
+  lb.innerHTML=log.slice(0,12).map(e=>e.note?`<div class="lognote">✎ ${e.note}</div>`:`<div class="logrow" style="color:${e.fail?col('red'):col('dim')}"><span>B=${e.B.toFixed(2)}T I=${e.I}A</span><span style="color:${e.fail?col('red'):col('green')}">F=${e.F}N ${e.fail?'✗MELT':e.Tmax+'K'}</span></div>`).join('');
+}
+function updateAll(){refreshSliderLabels();
+  document.getElementById('modeTag').textContent=mode==='concept'?'simplified':'constrained';
+  renderStages();renderTel();renderCell();renderPredout();renderMsgs();renderLog();
+  if(view==='analysis')renderAnalysis();}
+
+let timer=null;
+function run(){clearInterval(timer);
+  const r=simulate(curP()); result=r;running=true;failedNow=false;liveT=300;
+  document.getElementById('run').disabled=true; document.getElementById('run').textContent='BURN IN PROGRESS…';
+  let i=0;
+  timer=setInterval(()=>{
+    if(i>=r.series.length){clearInterval(timer);running=false;document.getElementById('run').disabled=false;document.getElementById('run').textContent='▶ RUN 15 s BURN';finish(r);return;}
+    liveT=r.series[i].T; if(r.failT!==null&&r.series[i].t>=r.failT)failedNow=true; renderCell(); i++;
+  },45);
+}
+function finish(r){hist={runs:hist.runs+1,overheat:hist.overheat+(r.failT!==null?1:0)};
+  const reactions=markinoff(r,curP()); msgs=[...reactions.reverse(),...msgs].slice(0,40);
+  log.unshift({B:P.B,I:P.I,F:+r.force.toFixed(1),Tmax:r.Tfinal,fail:r.failT!==null}); log=log.slice(0,12);
+  const pass=STAGES[stageIdx].check(r).pass;
+  if(pass&&!cleared[stageIdx]){cleared[stageIdx]=true; if(stageIdx<STAGES.length-1)setTimeout(()=>{stageIdx++;updateAll();},400);}
+  if(r.failT!==null&&hist.overheat>=2&&!askWhy)askWhy=true;
+  updateAll();
+}
+
+const MANTITLES=["00 · Orientation","01 · Vectors","02 · The Push","03 · Plasma","04 · The Enemy","05 · The Bill","06 · Thrust","07 · Aerospike","08 · Tradeoffs","09 · Workflow","10 · Receipts","11 · Limits"];
+function buildManNav(){const n=document.getElementById('mannav');
+  n.innerHTML=MANTITLES.map((t,i)=>`<button class="mannavb${i===0?' on':''}" onclick="setManPage(${i})">${t}</button>`).join('');}
+function setManPage(i){manPage=i;
+  document.querySelectorAll('.manpage').forEach((el,idx)=>el.style.display=idx===i?'':'none');
+  document.querySelectorAll('.mannavb').forEach((el,idx)=>el.className='mannavb'+(idx===i?' on':''));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function setView(v){view=v;
+  document.getElementById('view-lab').className=v==='lab'?'':'viewhidden';
+  document.getElementById('view-manual').className=v==='manual'?'':'viewhidden';
+  document.getElementById('view-analysis').className=v==='analysis'?'':'viewhidden';
+  document.getElementById('navLab').className='navb'+(v==='lab'?' on':'');
+  document.getElementById('navManual').className='navb'+(v==='manual'?' on':'');
+  document.getElementById('navAnalysis').className='navb'+(v==='analysis'?' on':'');
+  if(v==='analysis')renderAnalysis();
+}
+
+document.getElementById('run').addEventListener('click',run);
+document.getElementById('pred').addEventListener('input',e=>{prediction=e.target.value;renderPredout();});
+document.getElementById('mConcept').addEventListener('click',()=>{mode='concept';document.getElementById('mConcept').classList.add('on');document.getElementById('mEng').classList.remove('on');updateAll();});
+document.getElementById('mEng').addEventListener('click',()=>{mode='engineering';document.getElementById('mEng').classList.add('on');document.getElementById('mConcept').classList.remove('on');updateAll();});
+document.getElementById('navLab').addEventListener('click',()=>setView('lab'));
+document.getElementById('navManual').addEventListener('click',()=>setView('manual'));
+document.getElementById('navAnalysis').addEventListener('click',()=>setView('analysis'));
+
+buildConsole();buildManNav();updateAll();
+</script>
+</body>
+</html>
